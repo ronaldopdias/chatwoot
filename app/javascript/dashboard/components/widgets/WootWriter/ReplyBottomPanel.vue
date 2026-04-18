@@ -13,10 +13,17 @@ import AIAssistanceButton from '../AIAssistanceButton.vue';
 import { INBOX_TYPES } from 'dashboard/helper/inbox';
 import { mapGetters } from 'vuex';
 import NextButton from 'dashboard/components-next/button/Button.vue';
+import ScheduleSendDropdown from './ScheduleSendDropdown.vue';
 
 export default {
   name: 'ReplyBottomPanel',
-  components: { NextButton, FileUpload, VideoCallButton, AIAssistanceButton },
+  components: {
+    NextButton,
+    ScheduleSendDropdown,
+    FileUpload,
+    VideoCallButton,
+    AIAssistanceButton,
+  },
   mixins: [inboxMixin],
   props: {
     isNote: {
@@ -134,6 +141,7 @@ export default {
     'selectWhatsappTemplate',
     'selectContentTemplate',
     'toggleQuotedReply',
+    'openSchedule',
   ],
   setup() {
     const { setSignatureFlagForInbox, fetchSignatureFlagFromUISettings } =
@@ -262,6 +270,12 @@ export default {
       return this.quotedReplyEnabled
         ? this.$t('CONVERSATION.REPLYBOX.QUOTED_REPLY.DISABLE_TOOLTIP')
         : this.$t('CONVERSATION.REPLYBOX.QUOTED_REPLY.ENABLE_TOOLTIP');
+    },
+    schedulerEnabled() {
+      const cfg = window.globalConfig || {};
+      return (
+        Boolean(cfg.SCHEDULER_BASE_URL) && Boolean(cfg.SCHEDULER_APP_SECRET)
+      );
     },
   },
   mounted() {
@@ -414,7 +428,16 @@ export default {
       />
     </div>
     <div class="right-wrap">
+      <ScheduleSendDropdown
+        v-if="!isNote && schedulerEnabled"
+        :send-button-text="sendButtonText"
+        :disabled="isSendDisabled"
+        scheduler-enabled
+        @send="onSend"
+        @open-schedule="$emit('openSchedule')"
+      />
       <NextButton
+        v-else
         :label="sendButtonText"
         type="submit"
         sm
