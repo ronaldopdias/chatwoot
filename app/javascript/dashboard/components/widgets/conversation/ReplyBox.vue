@@ -21,6 +21,7 @@ import QuotedEmailPreview from './QuotedEmailPreview.vue';
 import { REPLY_EDITOR_MODES } from 'dashboard/components/widgets/WootWriter/constants';
 import WootMessageEditor from 'dashboard/components/widgets/WootWriter/Editor.vue';
 import AudioRecorder from 'dashboard/components/widgets/WootWriter/AudioRecorder.vue';
+import ScheduleModal from 'dashboard/components/widgets/WootWriter/ScheduleModal.vue';
 import { AUDIO_FORMATS } from 'shared/constants/messages';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
 import {
@@ -74,6 +75,7 @@ export default {
     WhatsappTemplates,
     WootMessageEditor,
     QuotedEmailPreview,
+    ScheduleModal,
   },
   mixins: [inboxMixin, fileUploadMixin, keyboardEventListenerMixins],
   props: {
@@ -125,6 +127,7 @@ export default {
       doAutoSaveDraft: () => {},
       showWhatsAppTemplatesModal: false,
       showContentTemplatesModal: false,
+      showScheduleModal: false,
       updateEditorSelectionWith: '',
       undefinedVariableMessage: '',
       showMentions: false,
@@ -150,6 +153,10 @@ export default {
       return this.$store.getters['contacts/getContact'](
         this.currentChat.meta.sender.id
       );
+    },
+    channelTypeForScheduler() {
+      const raw = this.channelType || '';
+      return raw.replace(/^Channel::/, '') || 'Email';
     },
     shouldShowReplyToMessage() {
       return (
@@ -735,6 +742,12 @@ export default {
     hideContentTemplatesModal() {
       this.showContentTemplatesModal = false;
     },
+    onScheduledMessageCreated() {
+      // Clear composer state after scheduling
+      this.message = '';
+      if (Array.isArray(this.attachedFiles)) this.attachedFiles = [];
+      this.showScheduleModal = false;
+    },
     confirmOnSendReply() {
       if (this.isReplyButtonDisabled) {
         return;
@@ -1306,6 +1319,7 @@ export default {
       @replace-text="replaceText"
       @toggle-insert-article="toggleInsertArticle"
       @toggle-quoted-reply="toggleQuotedReply"
+      @open-schedule="showScheduleModal = true"
     />
     <WhatsappTemplates
       :inbox-id="inbox.id"
@@ -1323,6 +1337,19 @@ export default {
       @cancel="hideContentTemplatesModal"
     />
 
+    <ScheduleModal
+      v-if="showScheduleModal"
+      :show="showScheduleModal"
+      :initial-content="message"
+      :conversation-id="currentChat.id"
+      :contact-id="currentChat.meta.sender.id"
+      :inbox-id="inboxId"
+      :channel-type="channelTypeForScheduler"
+      :current-user-id="currentUser.id"
+      :account-id="accountId"
+      @close="showScheduleModal = false"
+      @scheduled="onScheduledMessageCreated"
+    />
     <woot-confirm-modal
       ref="confirmDialog"
       :title="$t('CONVERSATION.REPLYBOX.UNDEFINED_VARIABLES.TITLE')"
