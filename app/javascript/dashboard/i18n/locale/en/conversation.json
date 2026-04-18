@@ -208,7 +208,25 @@
       "": "",
       "SCHEDULE_SEND": {
         "SEND_OPTIONS_LABEL": "Send options",
-        "SCHEDULE_OPTION": "Schedule send\u2026"
+        "SCHEDULE_OPTION": "Schedule send…",
+        "MODAL_TITLE": "Schedule send",
+        "CLOSE": "Close",
+        "TEMPLATE_LABEL": "Template",
+        "TEMPLATE_LOADING": "(loading…)",
+        "TEMPLATE_PLACEHOLDER": "Select a template…",
+        "TEMPLATE_HELP": "Required for WhatsApp / Messenger / Instagram outside the 24-hour window.",
+        "MESSAGE_LABEL": "Message",
+        "SEND_AT_LABEL": "Send at",
+        "REPEAT_LABEL": "Repeat",
+        "FREQ_DAILY": "Daily",
+        "FREQ_WEEKLY": "Weekly",
+        "FREQ_MONTHLY": "Monthly",
+        "EVERY_N": "every N",
+        "UNTIL_PLACEHOLDER": "Until",
+        "CANCEL": "Cancel",
+        "SCHEDULE": "Schedule",
+        "SCHEDULING": "Scheduling…",
+        "SCHEDULED_SUCCESS": "Scheduled (id {id})."
       },
       "EMAIL_HEAD": {
         "TO": "TO",
