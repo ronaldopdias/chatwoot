@@ -206,6 +206,10 @@
       "START_AUDIO_RECORDING": "Start audio recording",
       "STOP_AUDIO_RECORDING": "Stop audio recording",
       "": "",
+      "SCHEDULE_SEND": {
+        "SEND_OPTIONS_LABEL": "Send options",
+        "SCHEDULE_OPTION": "Schedule send\u2026"
+      },
       "EMAIL_HEAD": {
         "TO": "TO",
         "ADD_BCC": "Add bcc",
