@@ -22,6 +22,8 @@ const {
   WIDGET_BRAND_URL: widgetBrandURL,
   DISABLE_USER_PROFILE_UPDATE: disableUserProfileUpdate,
   DEPLOYMENT_ENV: deploymentEnv,
+  SCHEDULER_BASE_URL: schedulerBaseUrl,
+  SCHEDULER_APP_SECRET: schedulerAppSecret,
 } = window.globalConfig || {};
 
 const state = {
@@ -32,6 +34,8 @@ const state = {
   brandName,
   chatwootInboxToken,
   deploymentEnv,
+  schedulerBaseUrl,
+  schedulerAppSecret,
   createNewAccountFromDashboard,
   directUploadsEnabled: parseBoolean(directUploadsEnabled),
   disableUserProfileUpdate: parseBoolean(disableUserProfileUpdate),
