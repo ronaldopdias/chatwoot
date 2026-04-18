@@ -132,7 +132,7 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside));
 }
 .dropdown-menu {
   position: absolute;
-  top: calc(100% + 4px);
+  bottom: calc(100% + 4px);
   right: 0;
   background: white;
   border: 1px solid var(--color-border, #e5e7eb);
