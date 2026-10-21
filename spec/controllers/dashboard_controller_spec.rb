@@ -18,6 +18,28 @@ describe '/app/login', type: :request do
     end
   end
 
+  context 'when the scheduler companion is configured' do
+    let(:secret) { 'scheduler-signing-secret-0123456789abcdef' }
+
+    before do
+      create(:installation_config, name: 'SCHEDULER_BASE_URL', value: 'http://scheduler_api:3100', locked: false)
+      create(:installation_config, name: 'SCHEDULER_APP_SECRET', value: secret, locked: false)
+      GlobalConfig.clear_cache
+    end
+
+    after { GlobalConfig.clear_cache }
+
+    it 'enables Schedule Send without exposing the scheduler URL or secret' do
+      get '/app/login'
+
+      expect(response).to have_http_status(:success)
+      expect(response.body).not_to include(secret)
+      expect(response.body).not_to include('SCHEDULER_APP_SECRET')
+      expect(response.body).not_to include('scheduler_api:3100')
+      expect(response.body).to include('"SCHEDULER_ENABLED":true')
+    end
+  end
+
   context 'with non-HTML format' do
     it 'returns not acceptable for JSON with error message' do
       get '/app/login', headers: { 'Accept' => 'application/json' }

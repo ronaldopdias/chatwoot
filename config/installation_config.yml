@@ -700,3 +700,17 @@
   value: 'production'
   locked: false
 ## ---- End of mobile incoming-call push ---- ##
+
+# ------- Scheduler Companion Service Config ------- #
+# Server-side only: neither value is sent to the browser (see Scheduler::Client).
+- name: SCHEDULER_BASE_URL
+  value: ''
+  display_title: 'Scheduler Service URL'
+  description: 'Internal base URL Rails uses to reach the chatwoot-scheduler service (e.g. http://scheduler_api:3100). Leave empty to disable Schedule Send in the composer.'
+  locked: false
+- name: SCHEDULER_APP_SECRET
+  value: ''
+  display_title: 'Scheduler Signing Secret'
+  description: 'Shared secret Rails uses to HMAC-sign requests to the chatwoot-scheduler service. Must match chatwoot_credentials.hmac_shared_secret in the scheduler DB. Never exposed to browsers.'
+  locked: false
+  type: secret

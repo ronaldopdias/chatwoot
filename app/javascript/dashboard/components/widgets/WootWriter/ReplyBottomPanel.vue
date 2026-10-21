@@ -12,11 +12,13 @@ import RequestContactInfoButton from '../RequestContactInfoButton.vue';
 import { INBOX_TYPES } from 'dashboard/helper/inbox';
 import { mapGetters } from 'vuex';
 import NextButton from 'dashboard/components-next/button/Button.vue';
+import ScheduleSendDropdown from './ScheduleSendDropdown.vue';
 
 export default {
   name: 'ReplyBottomPanel',
   components: {
     NextButton,
+    ScheduleSendDropdown,
     FileUpload,
     VideoCallButton,
     RequestContactInfoButton,
@@ -129,6 +131,7 @@ export default {
     'selectWhatsappTemplate',
     'selectContentTemplate',
     'requestContactInfoTemplate',
+    'openSchedule',
   ],
   setup(props) {
     const { setSignatureFlagForInbox, fetchSignatureFlagFromUISettings } =
@@ -252,6 +255,10 @@ export default {
     },
     isFetchingAppIntegrations() {
       return this.uiFlags.isFetching;
+    },
+    schedulerEnabled() {
+      // Server-computed flag; the scheduler URL and secret stay in Rails.
+      return Boolean(window.globalConfig?.SCHEDULER_ENABLED);
     },
   },
   mounted() {
@@ -384,7 +391,16 @@ export default {
       />
     </div>
     <div class="right-wrap">
+      <ScheduleSendDropdown
+        v-if="!isNote && schedulerEnabled"
+        :send-button-text="sendButtonText"
+        :disabled="isSendDisabled"
+        scheduler-enabled
+        @send="onSend"
+        @open-schedule="$emit('openSchedule')"
+      />
       <NextButton
+        v-else
         :label="sendButtonText"
         type="submit"
         sm

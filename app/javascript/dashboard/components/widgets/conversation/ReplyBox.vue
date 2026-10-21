@@ -20,6 +20,7 @@ import QuotedEmailPreview from './QuotedEmailPreview.vue';
 import { REPLY_EDITOR_MODES } from 'dashboard/components/widgets/WootWriter/constants';
 import WootMessageEditor from 'dashboard/components/widgets/WootWriter/Editor.vue';
 import AudioRecorder from 'dashboard/components/widgets/WootWriter/AudioRecorder.vue';
+import ScheduleModal from 'dashboard/components/widgets/WootWriter/ScheduleModal.vue';
 import { AUDIO_FORMATS } from 'shared/constants/messages';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
 import { CMD_AI_ASSIST } from 'dashboard/helper/commandbar/events';
@@ -84,6 +85,7 @@ export default {
     CopilotEditorSection,
     CopilotReplyBottomPanel,
     ConversationResolveAttributesModal,
+    ScheduleModal,
   },
   mixins: [inboxMixin, fileUploadMixin],
   emits: ['toggleEditorSize'],
@@ -183,6 +185,7 @@ export default {
       showWhatsAppTemplatesModal: false,
       requestContactInfoTemplatesOnly: false,
       showContentTemplatesModal: false,
+      showScheduleModal: false,
       updateEditorSelectionWith: '',
       undefinedVariableMessage: '',
       showMentions: false,
@@ -218,6 +221,10 @@ export default {
       const senderId = this.currentChat?.meta?.sender?.id;
       if (!senderId) return {};
       return this.$store.getters['contacts/getContact'](senderId);
+    },
+    channelTypeForScheduler() {
+      const raw = this.channelType || '';
+      return raw.replace(/^Channel::/, '') || 'Email';
     },
     shouldShowReplyToMessage() {
       return (
@@ -867,6 +874,12 @@ export default {
     },
     hideContentTemplatesModal() {
       this.showContentTemplatesModal = false;
+    },
+    onScheduledMessageCreated() {
+      // Clear composer state after scheduling
+      this.clearMessage();
+      if (Array.isArray(this.attachedFiles)) this.attachedFiles = [];
+      this.showScheduleModal = false;
     },
     confirmOnSendReply() {
       if (this.isReplyButtonDisabled) {
@@ -1543,6 +1556,7 @@ export default {
         @select-content-template="openContentTemplateModal"
         @toggle-insert-article="toggleInsertArticle"
         @request-contact-info-template="openContactInfoTemplateModal"
+        @open-schedule="showScheduleModal = true"
       />
     </Transition>
 
@@ -1562,6 +1576,17 @@ export default {
       @close="hideContentTemplatesModal"
       @on-send="onSendContentTemplateReply"
       @cancel="hideContentTemplatesModal"
+    />
+
+    <ScheduleModal
+      v-if="showScheduleModal"
+      :show="showScheduleModal"
+      :initial-content="message"
+      :conversation-id="currentChat.id"
+      :inbox-id="inboxId"
+      :channel-type="channelTypeForScheduler"
+      @close="showScheduleModal = false"
+      @scheduled="onScheduledMessageCreated"
     />
 
     <ConversationResolveAttributesModal
