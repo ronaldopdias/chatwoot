@@ -630,7 +630,11 @@
       "CONTACT_SELECTOR": {
         "LABEL": "To:",
         "TAG_INPUT_PLACEHOLDER": "Enter at least 2 characters to search by name, email, or phone number",
-        "CONTACT_CREATING": "Creating contact..."
+        "CONTACT_CREATING": "Creating contact...",
+        "PHONE_COUNTRY_PROMPT": "Not a UK number. Which country is it from?",
+        "PHONE_COUNTRY_PLACEHOLDER": "Select country",
+        "PHONE_COUNTRY_SEARCH": "Search country or code",
+        "PHONE_COUNTRY_INVALID": "Not a valid number for this country"
       },
       "INBOX_SELECTOR": {
         "LABEL": "Via:",

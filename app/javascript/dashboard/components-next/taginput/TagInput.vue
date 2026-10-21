@@ -41,6 +41,9 @@ const props = defineProps({
   skipLabelDedup: { type: Boolean, default: false },
   // When false, the dropdown won't auto-open on mount; it opens only on click/focus.
   autoOpenDropdown: { type: Boolean, default: true },
+  // RevivaTech fork: optional (value) => value used to validate and create tags,
+  // e.g. turning a UK national phone number into E.164. The input text is left as typed.
+  normalizeTag: { type: Function, default: null },
 });
 
 const emit = defineEmits([
@@ -63,11 +66,17 @@ const tags = ref(props.modelValue);
 const newTag = ref('');
 const isFocused = ref(props.autoOpenDropdown);
 
+// What gets validated and created: the typed text, normalized when the parent asks.
+const normalizedNewTag = computed(() => {
+  if (!props.normalizeTag || !newTag.value) return newTag.value;
+  return props.normalizeTag(newTag.value) ?? newTag.value;
+});
+
 const rules = computed(() => getValidationRules(props.type));
-const v$ = useVuelidate(rules, { newTag });
+const v$ = useVuelidate(rules, { newTag: normalizedNewTag });
 
 const isNewTagInValidType = computed(() =>
-  checkTagTypeValidity(props.type, newTag.value, v$.value)
+  checkTagTypeValidity(props.type, normalizedNewTag.value, v$.value)
 );
 
 const showInput = computed(() =>
@@ -87,7 +96,7 @@ const filteredMenuItems = computed(() => {
     mode: props.mode,
     tags: tags.value,
     menuItems: props.menuItems,
-    newTag: newTag.value,
+    newTag: normalizedNewTag.value,
     isLoading: props.isLoading,
     type: props.type,
     isNewTagInValidType: isNewTagInValidType.value,
@@ -115,7 +124,7 @@ const updateValueAndFocus = value => {
 };
 
 const addTag = async () => {
-  const trimmedTag = newTag.value?.trim();
+  const trimmedTag = normalizedNewTag.value?.trim();
   if (!trimmedTag) return;
 
   if (!canAddTag(props.mode, tags.value.length)) {
@@ -202,6 +211,8 @@ watch(
 
 const handleInput = e => emit('input', e);
 const handleBlur = e => emit('blur', e);
+
+defineExpose({ focus: handleFocus });
 </script>
 
 <template>

@@ -1,10 +1,20 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { debounce } from '@chatwoot/utils';
+import countries from 'shared/constants/countries.js';
 import { INPUT_TYPES } from 'dashboard/components-next/taginput/helper/tagInputHelper.js';
+import {
+  DEFAULT_PHONE_COUNTRY,
+  isNationalNumber,
+  looksLikePhoneNumber,
+  needsCountryPrefix,
+  toE164,
+} from 'dashboard/components-next/NewConversation/helpers/phoneNumberHelper';
 
 import TagInput from 'dashboard/components-next/taginput/TagInput.vue';
 import Button from 'dashboard/components-next/button/Button.vue';
+import ComboBox from 'dashboard/components-next/combobox/ComboBox.vue';
 
 const props = defineProps({
   contacts: {
@@ -56,6 +66,47 @@ const i18nPrefix = 'COMPOSE_NEW_CONVERSATION.FORM.CONTACT_SELECTOR';
 const { t } = useI18n();
 
 const inputType = ref(INPUT_TYPES.EMAIL);
+const tagInputRef = ref(null);
+
+// RevivaTech fork: phone numbers typed without a country code are read as UK
+// numbers; if that isn't valid, the agent picks the country (see phoneNumberHelper).
+const typedValue = ref('');
+const phoneCountry = ref(''); // '' = not chosen yet, so UK
+const showCountryPrompt = ref(false);
+
+const countryOptions = countries.map(
+  ({ id, name, dial_code: dialCode, emoji }) => ({
+    value: id,
+    label: `${emoji} ${name} (${dialCode})`,
+  })
+);
+
+const toPhoneNumber = value =>
+  looksLikePhoneNumber(value)
+    ? toE164(value, phoneCountry.value || DEFAULT_PHONE_COUNTRY)
+    : null;
+
+// TagInput validates and creates this value; the input keeps what was typed.
+const normalizeTag = value => toPhoneNumber(value) ?? value;
+
+const countryNumberInvalid = computed(
+  () =>
+    showCountryPrompt.value &&
+    Boolean(phoneCountry.value) &&
+    !toPhoneNumber(typedValue.value)
+);
+
+// Wait for a pause in typing so the prompt doesn't flash while a UK number is
+// still incomplete. Once a country is chosen, keep the picker visible to change it.
+const updateCountryPrompt = debounce(
+  () => {
+    showCountryPrompt.value = phoneCountry.value
+      ? isNationalNumber(typedValue.value)
+      : needsCountryPrefix(typedValue.value);
+  },
+  700,
+  false
+);
 
 const contactsList = computed(() => {
   return props.contacts?.map(({ name, id, thumbnail, email, ...rest }) => ({
@@ -88,12 +139,36 @@ const errorClass = computed(() => {
 });
 
 const handleInput = value => {
-  // Update input type based on whether input starts with '+'
-  // If it does, set input type to 'tel'
-  // Otherwise, set input type to 'email'
-  inputType.value = value.startsWith('+') ? INPUT_TYPES.TEL : INPUT_TYPES.EMAIL;
-  emit('searchContacts', value);
+  typedValue.value = value;
+  if (!value?.trim()) phoneCountry.value = '';
+
+  // Phone numbers (with or without a country code) are validated as 'tel',
+  // everything else as 'email'
+  const isPhone = value.startsWith('+') || looksLikePhoneNumber(value);
+  inputType.value = isPhone ? INPUT_TYPES.TEL : INPUT_TYPES.EMAIL;
+
+  if (!isNationalNumber(value)) showCountryPrompt.value = false;
+  updateCountryPrompt();
+
+  // Search with the full number so an existing contact (+44…) is found
+  emit('searchContacts', toPhoneNumber(value) ?? value);
 };
+
+watch(phoneCountry, () => {
+  if (!typedValue.value) return;
+  emit('searchContacts', toPhoneNumber(typedValue.value) ?? typedValue.value);
+  nextTick(() => tagInputRef.value?.focus());
+});
+
+watch(
+  () => props.selectedContact,
+  contact => {
+    showCountryPrompt.value = false;
+    if (contact) return;
+    typedValue.value = '';
+    phoneCountry.value = '';
+  }
+);
 </script>
 
 <template>
@@ -135,6 +210,7 @@ const handleInput = value => {
       </div>
       <TagInput
         v-else
+        ref="tagInputRef"
         :placeholder="t(`${i18nPrefix}.TAG_INPUT_PLACEHOLDER`)"
         mode="single"
         :menu-items="contactsList"
@@ -143,6 +219,7 @@ const handleInput = value => {
         :disabled="contactableInboxesList?.length > 0 && showInboxesDropdown"
         allow-create
         :type="inputType"
+        :normalize-tag="normalizeTag"
         class="flex-1 min-h-7"
         :class="errorClass"
         focus-on-mount
@@ -150,6 +227,26 @@ const handleInput = value => {
         @on-click-outside="emit('updateDropdown', 'contacts', false)"
         @add="emit('setSelectedContact', $event)"
         @remove="emit('clearSelectedContact')"
+      />
+    </div>
+    <div
+      v-if="showCountryPrompt && !selectedContact && !isCreatingContact"
+      class="flex flex-wrap items-center gap-2 mt-2"
+      data-testid="phone-country-prompt"
+    >
+      <span class="text-sm text-n-slate-11">
+        {{ t(`${i18nPrefix}.PHONE_COUNTRY_PROMPT`) }}
+      </span>
+      <ComboBox
+        v-model="phoneCountry"
+        :options="countryOptions"
+        :placeholder="t(`${i18nPrefix}.PHONE_COUNTRY_PLACEHOLDER`)"
+        :search-placeholder="t(`${i18nPrefix}.PHONE_COUNTRY_SEARCH`)"
+        :has-error="countryNumberInvalid"
+        :message="
+          countryNumberInvalid ? t(`${i18nPrefix}.PHONE_COUNTRY_INVALID`) : ''
+        "
+        class="max-w-xs"
       />
     </div>
   </div>
