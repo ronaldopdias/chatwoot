@@ -36,4 +36,16 @@ module SafeFetch
   def self.allow_private_network?
     ActiveModel::Type::Boolean.new.cast(ENV.fetch('SAFE_FETCH_ALLOW_PRIVATE_NETWORK', false))
   end
+
+  # RevivaTech fork: exact hostnames that may resolve to private addresses (for example the
+  # Evolution API on the tailnet) without allowing private-network fetches for anything else,
+  # such as contact avatar URLs. Comma-separated, e.g. "manager.revivatech.co.uk".
+  def self.private_host_allowed?(url)
+    allowed = ENV.fetch('SAFE_FETCH_PRIVATE_HOST_ALLOWLIST', '').split(',').map { |host| host.strip.downcase }.compact_blank
+    return false if allowed.empty?
+
+    allowed.include?(URI(url.to_s).host.to_s.downcase)
+  rescue URI::InvalidURIError
+    false
+  end
 end
