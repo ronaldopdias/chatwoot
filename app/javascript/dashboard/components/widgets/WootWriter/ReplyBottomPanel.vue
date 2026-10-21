@@ -272,10 +272,8 @@ export default {
         : this.$t('CONVERSATION.REPLYBOX.QUOTED_REPLY.ENABLE_TOOLTIP');
     },
     schedulerEnabled() {
-      const cfg = window.globalConfig || {};
-      return (
-        Boolean(cfg.SCHEDULER_BASE_URL) && Boolean(cfg.SCHEDULER_APP_SECRET)
-      );
+      // Server-computed flag; the scheduler URL and secret stay in Rails.
+      return Boolean(window.globalConfig?.SCHEDULER_ENABLED);
     },
   },
   mounted() {

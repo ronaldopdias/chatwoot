@@ -11,11 +11,8 @@ const baseProps = {
   show: true,
   initialContent: 'Hello there',
   conversationId: 10,
-  contactId: 20,
   inboxId: 5,
   channelType: 'Email',
-  currentUserId: 1,
-  accountId: 1,
 };
 
 // Minimal i18n stub so <t('...')> calls don't blow up in tests
@@ -67,8 +64,18 @@ describe('ScheduleModal', () => {
     expect(schedulerApi.createSchedule).toHaveBeenCalledOnce();
     const arg = schedulerApi.createSchedule.mock.calls[0][0];
     expect(arg.content).toBe('Hello there');
-    expect(arg.channelType).toBe('Email');
+    expect(arg.contentType).toBe('text');
     expect(arg.conversationId).toBe(10);
+    // Identity and routing are derived server-side, never sent by the browser
+    expect(Object.keys(arg).sort()).toEqual(
+      [
+        'content',
+        'contentType',
+        'conversationId',
+        'scheduledAt',
+        'senderTimezone',
+      ].sort()
+    );
   });
 
   it('shows template picker for Whatsapp channel', async () => {

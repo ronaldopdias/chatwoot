@@ -1,100 +1,80 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createSchedule, fetchTemplates } from '../scheduler';
+import schedulerAPI, { createSchedule, fetchTemplates } from '../scheduler';
+import ApiClient from '../ApiClient';
 
-const BASE = 'https://scheduler.example.com';
-const SECRET = 'x'.repeat(32);
-
-function mockFetchOnce(status, body) {
-  const mock = vi.fn().mockResolvedValueOnce({
-    ok: status >= 200 && status < 300,
-    status,
-    text: () => Promise.resolve(JSON.stringify(body)),
-    json: () => Promise.resolve(body),
+describe('#schedulerAPI', () => {
+  it('is an account-scoped Chatwoot API client', () => {
+    expect(schedulerAPI).toBeInstanceOf(ApiClient);
+    expect(schedulerAPI.resource).toBe('scheduled_messages');
+    expect(schedulerAPI.options.accountScoped).toBe(true);
   });
-  window.fetch = mock;
-  return mock;
-}
 
-describe('scheduler api client', () => {
-  beforeEach(() => {
-    window.globalConfig = {
-      SCHEDULER_BASE_URL: BASE,
-      SCHEDULER_APP_SECRET: SECRET,
+  describe('API calls', () => {
+    const originalAxios = window.axios;
+    const axiosMock = {
+      post: vi.fn(() => Promise.resolve({ data: { id: 42 } })),
+      get: vi.fn(() =>
+        Promise.resolve({
+          data: { templates: [{ name: 't', language: 'en' }] },
+        })
+      ),
     };
-  });
 
-  it('createSchedule POSTs to the right URL with HMAC params', async () => {
-    const mock = mockFetchOnce(201, { id: 42, status: 'scheduled' });
-    const result = await createSchedule({
-      accountId: 1,
-      userId: 2,
-      conversationId: 3,
-      contactId: 4,
-      inboxId: 5,
-      channelType: 'Email',
-      content: 'hi',
-      contentType: 'text',
-      scheduledAt: '2026-04-20T09:00:00.000Z',
-      senderTimezone: 'UTC',
-      attachments: [],
+    beforeEach(() => {
+      window.axios = axiosMock;
+      window.globalConfig = { SCHEDULER_APP_SECRET: 'must-not-be-used' };
     });
-    expect(result.id).toBe(42);
-    const [url, init] = mock.mock.calls[0];
-    expect(url).toContain(`${BASE}/api/schedule?`);
-    expect(url).toContain('app_secret=');
-    expect(url).toContain('account_id=1');
-    expect(url).toContain('user_id=2');
-    expect(init.method).toBe('POST');
-    expect(JSON.parse(init.body).content).toBe('hi');
-  });
 
-  it('createSchedule throws on 4xx', async () => {
-    mockFetchOnce(400, { error: 'invalid' });
-    await expect(
-      createSchedule({
-        accountId: 1,
-        userId: 2,
-        contactId: 4,
-        inboxId: 5,
-        channelType: 'Email',
-        content: 'x',
+    afterEach(() => {
+      window.axios = originalAxios;
+      window.globalConfig = {};
+      vi.clearAllMocks();
+    });
+
+    it('#createSchedule posts only the agent-chosen fields to Chatwoot', async () => {
+      const result = await createSchedule({
+        conversationId: 3,
+        content: 'hi',
         contentType: 'text',
         scheduledAt: '2026-04-20T09:00:00.000Z',
         senderTimezone: 'UTC',
-        attachments: [],
-      })
-    ).rejects.toThrow();
-  });
+        recurrenceRule: { freq: 'WEEKLY', interval: 1 },
+      });
 
-  it('fetchTemplates hits the proxy endpoint', async () => {
-    const mock = mockFetchOnce(200, {
-      templates: [{ name: 't', language: 'en' }],
+      expect(result.id).toBe(42);
+      expect(axiosMock.post).toHaveBeenCalledWith(
+        '/api/v1/scheduled_messages',
+        {
+          conversation_id: 3,
+          content: 'hi',
+          content_type: 'text',
+          scheduled_at: '2026-04-20T09:00:00.000Z',
+          sender_timezone: 'UTC',
+          recurrence_rule: { freq: 'WEEKLY', interval: 1 },
+        }
+      );
+      const [url, body] = axiosMock.post.mock.calls[0];
+      expect(url).not.toContain('scheduler');
+      expect(JSON.stringify(body)).not.toContain('must-not-be-used');
     });
-    const templates = await fetchTemplates({
-      accountId: 1,
-      userId: 2,
-      inboxId: 5,
-    });
-    expect(templates).toHaveLength(1);
-    expect(mock.mock.calls[0][0]).toContain('/api/chatwoot/templates');
-    expect(mock.mock.calls[0][0]).toContain('inboxId=5');
-  });
 
-  it('throws when SCHEDULER_BASE_URL is not configured', async () => {
-    window.globalConfig = {};
-    await expect(
-      createSchedule({
-        accountId: 1,
-        userId: 2,
-        contactId: 4,
-        inboxId: 5,
-        channelType: 'Email',
-        content: 'x',
-        contentType: 'text',
-        scheduledAt: '2026-04-20T09:00:00.000Z',
-        senderTimezone: 'UTC',
-        attachments: [],
-      })
-    ).rejects.toThrow(/SCHEDULER_BASE_URL/);
+    it('#createSchedule surfaces the server error message', async () => {
+      axiosMock.post.mockRejectedValueOnce({
+        response: {
+          data: { error: 'Please pick a time at least 1 minute from now.' },
+        },
+      });
+      await expect(
+        createSchedule({ conversationId: 3, content: 'x', contentType: 'text' })
+      ).rejects.toThrow('Please pick a time at least 1 minute from now.');
+    });
+
+    it('#fetchTemplates asks Chatwoot for the inbox templates', async () => {
+      const templates = await fetchTemplates({ inboxId: 5 });
+      expect(templates).toHaveLength(1);
+      expect(axiosMock.get).toHaveBeenCalledWith(
+        '/api/v1/scheduled_messages/templates',
+        { params: { inbox_id: 5 } }
+      );
+    });
   });
 });

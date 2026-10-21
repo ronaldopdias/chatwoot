@@ -36,9 +36,7 @@ class DashboardController < ActionController::Base
       'LOGOUT_REDIRECT_LINK',
       'DISABLE_USER_PROFILE_UPDATE',
       'DEPLOYMENT_ENV',
-      'INSTALLATION_PRICING_PLAN',
-      'SCHEDULER_BASE_URL',
-      'SCHEDULER_APP_SECRET'
+      'INSTALLATION_PRICING_PLAN'
     ).merge(app_config)
   end
 
@@ -73,6 +71,9 @@ class DashboardController < ActionController::Base
       WHATSAPP_CONFIGURATION_ID: GlobalConfigService.load('WHATSAPP_CONFIGURATION_ID', ''),
       IS_ENTERPRISE: ChatwootApp.enterprise?,
       AZURE_APP_ID: GlobalConfigService.load('AZURE_APP_ID', ''),
+      # RevivaTech fork: only whether Schedule Send is available. The scheduler's
+      # URL and secret stay server-side (see Scheduler::Client).
+      SCHEDULER_ENABLED: Scheduler::Client.configured?,
       GIT_SHA: GIT_HASH
     }
   end

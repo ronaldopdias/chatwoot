@@ -107,6 +107,10 @@ Rails.application.routes.draw do
           end
           resources :campaigns, only: [:index, :create, :show, :update, :destroy]
           resources :dashboard_apps, only: [:index, :show, :create, :update, :destroy]
+          # RevivaTech fork: signed proxy to the chatwoot-scheduler service
+          resources :scheduled_messages, only: [:create] do
+            get :templates, on: :collection
+          end
           namespace :channels do
             resource :twilio_channel, only: [:create]
           end

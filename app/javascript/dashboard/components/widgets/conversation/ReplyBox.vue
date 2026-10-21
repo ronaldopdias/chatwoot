@@ -1342,11 +1342,8 @@ export default {
       :show="showScheduleModal"
       :initial-content="message"
       :conversation-id="currentChat.id"
-      :contact-id="currentChat.meta.sender.id"
       :inbox-id="inboxId"
       :channel-type="channelTypeForScheduler"
-      :current-user-id="currentUser.id"
-      :account-id="accountId"
       @close="showScheduleModal = false"
       @scheduled="onScheduledMessageCreated"
     />

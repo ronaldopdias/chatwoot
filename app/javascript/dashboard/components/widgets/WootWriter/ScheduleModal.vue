@@ -6,12 +6,9 @@ import { createSchedule, fetchTemplates } from 'dashboard/api/scheduler';
 const props = defineProps({
   show: { type: Boolean, default: false },
   initialContent: { type: String, default: '' },
-  conversationId: { type: Number, default: null },
-  contactId: { type: Number, required: true },
+  conversationId: { type: Number, required: true },
   inboxId: { type: Number, required: true },
   channelType: { type: String, required: true },
-  currentUserId: { type: Number, required: true },
-  accountId: { type: Number, required: true },
 });
 
 const emit = defineEmits(['close', 'scheduled']);
@@ -62,11 +59,7 @@ async function loadTemplates() {
   if (!requiresTemplate.value) return;
   templatesLoading.value = true;
   try {
-    templates.value = await fetchTemplates({
-      accountId: props.accountId,
-      userId: props.currentUserId,
-      inboxId: props.inboxId,
-    });
+    templates.value = await fetchTemplates({ inboxId: props.inboxId });
   } catch (e) {
     errorMessage.value = e.message || String(e);
   } finally {
@@ -104,18 +97,14 @@ async function submit() {
   errorMessage.value = null;
   successMessage.value = null;
   try {
+    // Account, user, contact and inbox are derived server-side from the
+    // conversation; only what the agent chose is sent.
     const payload = {
-      accountId: props.accountId,
-      userId: props.currentUserId,
       conversationId: props.conversationId,
-      contactId: props.contactId,
-      inboxId: props.inboxId,
-      channelType: props.channelType,
       content: requiresTemplate.value ? '' : content.value,
       contentType: requiresTemplate.value ? 'template' : 'text',
       scheduledAt: new Date(scheduledAt.value).toISOString(),
       senderTimezone,
-      attachments: [],
     };
     if (requiresTemplate.value) {
       payload.template = {
